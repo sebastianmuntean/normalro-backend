@@ -13,7 +13,7 @@ import requests
 app = Flask(__name__)
 
 # Configure CORS
-allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
+allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000,https://www.normal.ro,https://normal.ro').split(',')
 CORS(app, resources={
     r"/*": {
         "origins": allowed_origins,
@@ -249,7 +249,7 @@ def anaf_company_search():
         return jsonify({"error": "invalid_cui"}), 400
     
     try:
-        # Apel către ANAF
+        # Apel către ANAF (URL corect din codul C# funcțional!)
         anaf_url = "https://webservicesp.anaf.ro/PlatitorTvaRest/api/v9/ws/tva"
         anaf_response = requests.post(
             anaf_url,
