@@ -12,14 +12,35 @@ import requests
 # Create Flask app
 app = Flask(__name__)
 
-# Configure CORS - echivalent cu express cors()
-allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'https://www.normal.ro').split(',')
+# Configure CORS
+allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000,https://www.normal.ro,https://normal.ro').split(',')
+# Ensure https://www.normal.ro is explicitly included
+if 'https://www.normal.ro' not in allowed_origins:
+    allowed_origins.append('https://www.normal.ro')
+
 CORS(app, 
-     origins=allowed_origins,
-     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-     allow_headers=["Content-Type", "Authorization", "Accept-Language"],
-     supports_credentials=True,
-     max_age=3600)
+     resources={
+         r"/api/*": {
+             "origins": allowed_origins,
+             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+             "allow_headers": ["Content-Type", "Authorization", "Accept-Language"],
+             "supports_credentials": True,
+             "max_age": 3600
+         }
+     })
+
+# Debug CORS headers
+@app.after_request
+def add_cors_headers(response):
+    origin = request.headers.get('Origin')
+    if origin in allowed_origins:
+        response.headers['Access-Control-Allow-Origin'] = origin
+        response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept-Language'
+        response.headers['Access-Control-Max-Age'] = '3600'
+        if request.method == 'OPTIONS':
+            response.status_code = 204
+    return response
 
 
 # Tools metadata
@@ -231,8 +252,10 @@ def tool_cnp_validator():
         return jsonify({"error": "invalid_cnp"}), 400
 
 
-@app.route('/api/anaf/company', methods=['POST'])
+@app.route('/api/anaf/company', methods=['POST', 'OPTIONS'])
 def anaf_company_search():
+    if request.method == 'OPTIONS':
+        return '', 204
     """Proxy pentru API ANAF - căutare date companie după CUI"""
     data = request.get_json(silent=True) or {}
     cui = data.get("cui", "")
@@ -248,7 +271,7 @@ def anaf_company_search():
         return jsonify({"error": "invalid_cui"}), 400
     
     try:
-        # Apel către ANAF (URL corect: /api/PlatitorTvaRest/)
+        # Apel către ANAF
         anaf_url = "https://webservicesp.anaf.ro/api/PlatitorTvaRest/v9/tva"
         anaf_response = requests.post(
             anaf_url,
@@ -300,6 +323,7 @@ def anaf_company_search():
             })
         else:
             return jsonify({"success": False, "error": "CUI nu a fost găsit în ANAF"}), 404
+            
             
     except requests.Timeout:
         return jsonify({"error": "anaf_timeout"}), 504
