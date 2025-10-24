@@ -13,7 +13,7 @@ import requests
 app = Flask(__name__)
 
 # Configure CORS - echivalent cu express cors()
-allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000,https://www.normal.ro,https://normal.ro').split(',')
+allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'https://www.normal.ro').split(',')
 CORS(app, 
      origins=allowed_origins,
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
