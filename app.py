@@ -12,15 +12,14 @@ import requests
 # Create Flask app
 app = Flask(__name__)
 
-# Configure CORS
+# Configure CORS - echivalent cu express cors()
 allowed_origins = os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000,https://www.normal.ro,https://normal.ro').split(',')
-CORS(app, resources={
-    r"/*": {
-        "origins": allowed_origins,
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Accept-Language"]
-    }
-})
+CORS(app, 
+     origins=allowed_origins,
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+     allow_headers=["Content-Type", "Authorization", "Accept-Language"],
+     supports_credentials=True,
+     max_age=3600)
 
 
 # Tools metadata
