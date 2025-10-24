@@ -248,12 +248,15 @@ def anaf_company_search():
         return jsonify({"error": "invalid_cui"}), 400
     
     try:
-        # Apel către ANAF (URL corect din codul C# funcțional!)
-        anaf_url = "https://webservicesp.anaf.ro/PlatitorTvaRest/api/v9/ws/tva"
+        # Apel către ANAF (URL corect: /api/PlatitorTvaRest/)
+        anaf_url = "https://webservicesp.anaf.ro/api/PlatitorTvaRest/v9/tva"
         anaf_response = requests.post(
             anaf_url,
             json=[{"cui": int(clean_cui), "data": search_date}],
-            headers={"Content-Type": "application/json"},
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
             timeout=10
         )
         

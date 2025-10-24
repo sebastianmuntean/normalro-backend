@@ -7,7 +7,12 @@ from pydantic import BaseModel
 from datetime import datetime
 import requests
 import re
+import logging
 from typing import Optional
+
+# Configurare logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="NormalRO ANAF API",
@@ -79,12 +84,15 @@ async def anaf_company_search(request: ANAFRequest):
         raise HTTPException(status_code=400, detail="invalid_cui")
     
     try:
-        # Apel către API-ul ANAF
-        anaf_url = "https://webservicesp.anaf.ro/PlatitorTvaRest/api/v9/ws/tva"
+        # Apel către API-ul ANAF (URL corect: /api/PlatitorTvaRest/)
+        anaf_url = "https://webservicesp.anaf.ro/api/PlatitorTvaRest/v9/tva"
         anaf_response = requests.post(
             anaf_url,
             json=[{"cui": int(clean_cui), "data": search_date}],
-            headers={"Content-Type": "application/json"},
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
             timeout=10
         )
         
@@ -133,11 +141,14 @@ async def anaf_company_search(request: ANAFRequest):
             }
             
     except requests.Timeout:
+        logger.error("ANAF API timeout")
         raise HTTPException(status_code=504, detail="anaf_timeout")
-    except requests.RequestException:
+    except requests.RequestException as e:
+        logger.error(f"ANAF API connection error: {str(e)}")
         raise HTTPException(status_code=500, detail="anaf_connection_error")
     except Exception as e:
-        raise HTTPException(status_code=500, detail="server_error")
+        logger.error(f"Server error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"server_error: {str(e)}")
 
 
 if __name__ == "__main__":
