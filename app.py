@@ -6,6 +6,7 @@ import os
 import random
 import re
 import string
+import requests
 
 
 # Create Flask app
@@ -229,6 +230,81 @@ def tool_cnp_validator():
         return jsonify(parse_cnp(cnp_value))
     except ValueError:
         return jsonify({"error": "invalid_cnp"}), 400
+
+
+@app.route('/api/anaf/company', methods=['POST'])
+def anaf_company_search():
+    """Proxy pentru API ANAF - căutare date companie după CUI"""
+    data = request.get_json(silent=True) or {}
+    cui = data.get("cui", "")
+    search_date = data.get("date") or datetime.now().strftime("%Y-%m-%d")
+    
+    if not cui:
+        return jsonify({"error": "cui_required"}), 400
+    
+    # Curăță CUI-ul
+    clean_cui = re.sub(r'[^0-9]', '', str(cui))
+    
+    if not clean_cui:
+        return jsonify({"error": "invalid_cui"}), 400
+    
+    try:
+        # Apel către ANAF
+        anaf_url = "https://webservicesp.anaf.ro/PlatitorTvaRest/api/v9/ws/tva"
+        anaf_response = requests.post(
+            anaf_url,
+            json=[{"cui": int(clean_cui), "data": search_date}],
+            headers={"Content-Type": "application/json"},
+            timeout=10
+        )
+        
+        if anaf_response.status_code != 200:
+            return jsonify({"error": "anaf_service_error"}), 500
+        
+        anaf_data = anaf_response.json()
+        
+        # Verifică dacă compania a fost găsită
+        if anaf_data.get("found") and len(anaf_data["found"]) > 0:
+            company = anaf_data["found"][0]
+            date_generale = company.get("date_generale", {})
+            adresa_sediu = company.get("adresa_sediu_social", {})
+            
+            # Construiește adresa completă
+            adresa_parts = []
+            if adresa_sediu.get("sdenumire_Strada"):
+                adresa_parts.append(adresa_sediu["sdenumire_Strada"])
+            if adresa_sediu.get("snumar_Strada"):
+                adresa_parts.append(f"Nr. {adresa_sediu['snumar_Strada']}")
+            if adresa_sediu.get("sdenumire_Localitate"):
+                adresa_parts.append(adresa_sediu["sdenumire_Localitate"])
+            if adresa_sediu.get("sdenumire_Judet"):
+                adresa_parts.append(adresa_sediu["sdenumire_Judet"])
+            
+            adresa_completa = ", ".join(adresa_parts) if adresa_parts else date_generale.get("adresa", "")
+            
+            return jsonify({
+                "success": True,
+                "data": {
+                    "cui": date_generale.get("cui", clean_cui),
+                    "denumire": date_generale.get("denumire", ""),
+                    "nrRegCom": date_generale.get("nrRegCom", ""),
+                    "adresa": adresa_completa,
+                    "oras": adresa_sediu.get("sdenumire_Localitate", ""),
+                    "judet": adresa_sediu.get("sdenumire_Judet", ""),
+                    "telefon": date_generale.get("telefon", ""),
+                    "codPostal": date_generale.get("codPostal", ""),
+                    "platitorTVA": company.get("inregistrare_scop_Tva", {}).get("scpTVA", False)
+                }
+            })
+        else:
+            return jsonify({"success": False, "error": "CUI nu a fost găsit în ANAF"}), 404
+            
+    except requests.Timeout:
+        return jsonify({"error": "anaf_timeout"}), 504
+    except requests.RequestException as e:
+        return jsonify({"error": "anaf_connection_error"}), 500
+    except Exception as e:
+        return jsonify({"error": "server_error"}), 500
 
 
 if __name__ == '__main__':
