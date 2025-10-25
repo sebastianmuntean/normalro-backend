@@ -262,13 +262,13 @@ def anaf_company_search():
     search_date = data.get("date") or datetime.now().strftime("%Y-%m-%d")
     
     if not cui:
-        return jsonify({"error": "cui_required"}), 400
+        return jsonify({"success": False, "error": "Codul fiscal (CUI) este obligatoriu"}), 400
     
     # Curăță CUI-ul
     clean_cui = re.sub(r'[^0-9]', '', str(cui))
     
     if not clean_cui:
-        return jsonify({"error": "invalid_cui"}), 400
+        return jsonify({"success": False, "error": "Cod fiscal invalid"}), 400
     
     try:
         # Apel către ANAF
@@ -284,7 +284,7 @@ def anaf_company_search():
         )
         
         if anaf_response.status_code != 200:
-            return jsonify({"error": "anaf_service_error"}), 500
+            return jsonify({"success": False, "error": "Serviciul ANAF este temporar indisponibil"}), 500
         
         anaf_data = anaf_response.json()
         
@@ -322,15 +322,15 @@ def anaf_company_search():
                 }
             })
         else:
-            return jsonify({"success": False, "error": "CUI nu a fost găsit în ANAF"}), 404
+            return jsonify({"success": False, "error": f"Nu s-a găsit o companie cu codul fiscal {clean_cui} în registrul ANAF"}), 404
             
             
     except requests.Timeout:
-        return jsonify({"error": "anaf_timeout"}), 504
+        return jsonify({"success": False, "error": "Serviciul ANAF nu răspunde. Încercați din nou mai târziu."}), 504
     except requests.RequestException as e:
-        return jsonify({"error": "anaf_connection_error"}), 500
+        return jsonify({"success": False, "error": "Eroare de conexiune la serviciul ANAF"}), 500
     except Exception as e:
-        return jsonify({"error": "server_error"}), 500
+        return jsonify({"success": False, "error": "A apărut o eroare la procesarea cererii"}), 500
 
 
 if __name__ == '__main__':
