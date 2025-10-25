@@ -23,3 +23,4 @@ echo "To start the FastAPI server:"
 echo "    uvicorn anaf_api:app --reload"
 echo ""
 
+

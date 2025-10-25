@@ -337,3 +337,4 @@ sudo systemctl show normalro-backend | grep ALLOWED_ORIGINS
 
 **Un singur backend Flask cu toate endpoint-urile!** 🎯
 
+
