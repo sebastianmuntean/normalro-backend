@@ -339,5 +339,3 @@ sudo systemctl show normalro-backend | grep ALLOWED_ORIGINS
 
 
 
-
-
