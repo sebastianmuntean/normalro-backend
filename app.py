@@ -32,13 +32,6 @@ CORS(app,
              "allow_headers": ["Content-Type", "Authorization", "Accept-Language"],
              "supports_credentials": True,
              "max_age": 3600
-         },
-         r"/api/email/*": {
-             "origins": allowed_origins,
-             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-             "allow_headers": ["Content-Type", "Authorization", "Accept-Language"],
-             "supports_credentials": True,
-             "max_age": 3600
          }
      })
 
@@ -51,7 +44,6 @@ def add_cors_headers(response):
         response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
         response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, Accept-Language'
         response.headers['Access-Control-Max-Age'] = '3600'
-        response.headers['Access-Control-Allow-Credentials'] = 'true'
         if request.method == 'OPTIONS':
             response.status_code = 204
     return response
@@ -389,12 +381,9 @@ def get_smtp_config(provider='gmail'):
     return SMTP_CONFIG.get(provider, SMTP_CONFIG['gmail'])
 
 
-@app.route('/api/email/upload-temp-file', methods=['POST', 'OPTIONS'])
+@app.route('/api/email/upload-temp-file', methods=['POST'])
 def upload_temp_file():
     """Upload temporar fișier PDF pentru trimitere email"""
-    if request.method == 'OPTIONS':
-        return '', 204
-    
     try:
         data = request.get_json(silent=True) or {}
         
@@ -430,12 +419,9 @@ def upload_temp_file():
         return jsonify({'success': False, 'error': f'Eroare upload: {str(e)}'}), 500
 
 
-@app.route('/api/email/send', methods=['POST', 'OPTIONS'])
+@app.route('/api/email/send', methods=['POST'])
 def send_email():
     """Trimite email cu atașament PDF folosind credențialele utilizatorului"""
-    if request.method == 'OPTIONS':
-        return '', 204
-    
     try:
         data = request.get_json(silent=True) or {}
         
@@ -549,12 +535,9 @@ def send_email():
         return jsonify({'success': False, 'error': f'Eroare: {str(e)}'}), 500
 
 
-@app.route('/api/email/delete-temp-file/<file_id>', methods=['DELETE', 'OPTIONS'])
+@app.route('/api/email/delete-temp-file/<file_id>', methods=['DELETE'])
 def delete_temp_file(file_id):
     """Șterge fișierul temporar după trimiterea email-ului"""
-    if request.method == 'OPTIONS':
-        return '', 204
-    
     try:
         # Găsește toate fișierele cu acest ID
         temp_files = [f for f in os.listdir(TEMP_FILES_DIR) if f.startswith(file_id)]
@@ -576,12 +559,9 @@ def delete_temp_file(file_id):
         return jsonify({'success': False, 'error': f'Eroare ștergere: {str(e)}'}), 500
 
 
-@app.route('/api/email/config', methods=['GET', 'OPTIONS'])
+@app.route('/api/email/config', methods=['GET'])
 def get_email_config():
     """Returnează providerii disponibili (doar info, fără credențiale)"""
-    if request.method == 'OPTIONS':
-        return '', 204
-    
     available_providers = []
     
     for provider_name, config in SMTP_CONFIG.items():
